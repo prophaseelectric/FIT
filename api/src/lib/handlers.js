@@ -169,7 +169,7 @@ const routes = {
   // Settings that should follow you across devices (goals, targets, custom tags).
   'GET /prefs': async ({ headers }) => serveDoc('manual/prefs.json', headers),
   'PUT /prefs': async ({ body }) => {
-    const allowed = ['goalKg', 'sleepTargetH', 'stepGoal', 'units', 'customTags', 'goalDate'];
+    const allowed = ['goalKg', 'sleepTargetH', 'stepGoal', 'units', 'customTags', 'goalDate', 'myDayOrder', 'myDayHidden'];
     const doc = await updateJson('manual/prefs.json', {}, (d) => {
       for (const k of allowed) if (k in (body || {})) d[k] = body[k];
     });

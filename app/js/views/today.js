@@ -1,6 +1,6 @@
 import { h, card, statusChip, fmtDur, fmtInt, fmtDate, wUnit, toW, fromW, todayStr, addDays, weekStart, isNum, sum, delta, toast } from '../ui.js';
 import { DB, day, baseline, latest, weightTrend, trainingLoad, sleepTargetH } from '../data.js';
-import { api } from '../api.js';
+import { api, cacheGet, cacheSet } from '../api.js';
 import { activityRow } from './train.js';
 
 export const DEFAULT_TAGS = ['Alcohol', 'Late caffeine', 'Late meal', 'Sauna', 'Stretch/mobility', 'Sick', 'Travel', 'Stressful day', 'Rest day'];
@@ -86,12 +86,52 @@ function spark(vals, color, kind = 'bars', goal) {
 }
 
 function glance({ key, color, title, value, unit, sub, vals, kind, goal, href }) {
-  return h('a', { class: 'glance', href },
+  return h('a', { class: 'glance', href, 'data-key': key },
     h('div', { class: 'g-main' },
       h('div', { class: 'g-head' }, icon(key, color), h('span', { class: 'g-title' }, title)),
       h('div', { class: 'g-value' }, value, unit ? h('span', { class: 'g-unit' }, unit) : null),
       sub ? h('div', { class: 'g-sub' }, sub) : null),
     h('div', { class: 'g-chart' }, spark(vals, color, kind, goal), h('span', { class: 'g-chev', 'aria-hidden': 'true' }, '›')));
+}
+
+// Reorderable, hideable card feed. Order/hidden live in server prefs so every device matches.
+let editing = false;
+function myDayFeed(cards) {
+  const byKey = new Map(cards.map((c) => [c.dataset.key, c]));
+  const order = [...(DB.prefs.myDayOrder || []).filter((k) => byKey.has(k)), ...cards.map((c) => c.dataset.key).filter((k) => !(DB.prefs.myDayOrder || []).includes(k))];
+  const hidden = new Set(DB.prefs.myDayHidden || []);
+  const wrap = h('div', { class: 'feed-wrap' });
+  const persist = async () => {
+    try {
+      DB.prefs = await api('prefs', { method: 'PUT', body: { myDayOrder: order, myDayHidden: [...hidden] } });
+      const snap = await cacheGet('snapshot');
+      if (snap) await cacheSet('snapshot', { ...snap, prefs: DB.prefs });
+    } catch (e) { toast('Could not save layout: ' + e.message); }
+  };
+  let sortable;
+  const draw = () => {
+    sortable?.destroy();
+    const feed = h('div', { class: 'feed' + (editing ? ' editing' : '') });
+    for (const k of order) {
+      const c = byKey.get(k);
+      if (!editing) { if (!hidden.has(k)) feed.append(c); continue; }
+      const on = !hidden.has(k);
+      feed.append(h('div', { class: 'glance-edit' + (on ? '' : ' off'), 'data-key': k },
+        h('span', { class: 'g-drag', 'aria-label': 'Drag to reorder', title: 'Drag to reorder', html: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>' }),
+        c.querySelector('.g-head').cloneNode(true),
+        h('button', { class: 'g-toggle' + (on ? ' on' : ''), role: 'switch', 'aria-checked': String(on), 'aria-label': (on ? 'Hide ' : 'Show ') + k, onclick: () => { on ? hidden.add(k) : hidden.delete(k); persist(); draw(); } }, h('span'))));
+    }
+    const btn = h('button', { class: 'btn ghost small', onclick: () => { editing = !editing; draw(); } }, editing ? 'Done' : 'Edit');
+    wrap.replaceChildren(h('div', { class: 'card-head feed-head' }, h('h2', null, editing ? 'Drag to reorder · toggle to show' : 'Today'), btn), feed);
+    if (editing && window.Sortable) {
+      sortable = window.Sortable.create(feed, {
+        handle: '.g-drag', animation: 160, ghostClass: 'g-ghost', delay: 0, touchStartThreshold: 4,
+        onEnd: () => { order.splice(0, order.length, ...[...feed.children].map((el) => el.dataset.key)); persist(); },
+      });
+    }
+  };
+  draw();
+  return wrap;
 }
 
 export function render(root) {
@@ -122,9 +162,8 @@ export function render(root) {
   const stepGoal = r.stepGoal || DB.prefs.stepGoal || 10000;
   const hm = (sec) => { const m = Math.round(sec / 60); return [Math.floor(m / 60), m % 60]; };
 
-  const feed = h('div', { class: 'feed' });
   const [sh, sm] = isNum(sleepRow.sleepSec) ? hm(sleepRow.sleepSec) : [null, null];
-  feed.append(
+  const cards = [
     glance({ key: 'sleep', color: C.sleep, title: 'Sleep', href: '#/sleep', value: sh !== null ? h('span', null, sh, h('span', { class: 'g-unit' }, 'h '), sm, h('span', { class: 'g-unit' }, 'm')) : '–',
       sub: isNum(sleepRow.sleepScore) ? `Score ${sleepRow.sleepScore} · ${String(sleepRow.sleepQual || '').toLowerCase()}` : 'No sleep recorded', vals: series('sleepSec', (v) => v / 3600), kind: 'bars', goal: sleepTargetH() }),
     glance({ key: 'bb', color: C.bb, title: 'Body Battery', href: '#/day/' + t, value: isNum(r.bbMax) ? r.bbMax : '–', sub: isNum(r.bbMin) ? `High today · low ${r.bbMin} · +${r.bbCharged ?? 0} / −${r.bbDrained ?? 0}` : '', vals: series('bbMax'), kind: 'line' }),
@@ -135,8 +174,8 @@ export function render(root) {
     glance({ key: 'im', color: C.im, title: 'Intensity Minutes', href: '#/train', value: fmtInt(im), sub: `This week · goal ${imGoal}`, vals: last7.map((d) => (day(d).imMod || 0) + 2 * (day(d).imVig || 0)), kind: 'bars' }),
     glance({ key: 'resp', color: C.resp, title: 'Respiration', href: '#/trends?m=sleepResp', value: isNum(sleepRow.sleepResp) ? sleepRow.sleepResp : '–', unit: 'brpm', sub: isNum(sleepRow.sleepSpo2) ? `Asleep · SpO₂ ${sleepRow.sleepSpo2}%` : 'Asleep', vals: series('sleepResp'), kind: 'line' }),
     glance({ key: 'weight', color: C.weight, title: 'Weight', href: '#/body', value: tw?.trend ? toW(tw.trend).toFixed(1) : '–', unit: tw?.trend ? wUnit() : '', sub: tw7?.trend && tw?.trend ? h('span', null, 'Trend · ', delta(toW(tw.trend) - toW(tw7.trend), { unit: ' ' + wUnit(), goodWhen: (DB.prefs.goalKg ?? 0) > (tw.trend ?? 0) ? 'up' : 'down' }), ' this week') : 'Log a weigh-in', vals: last7.map((d) => { const x = trend.find((p) => p.date === d); return x?.trend ? toW(x.trend) : null; }), kind: 'line' }),
-  );
-  root.append(feed);
+  ];
+  root.append(myDayFeed(cards));
 
   const recent = DB.acts.slice(0, 3);
   root.append(h('section', { class: 'card' }, h('div', { class: 'card-head' }, h('h2', null, 'Activities'), h('a', { class: 'link', href: '#/train' }, 'All')),

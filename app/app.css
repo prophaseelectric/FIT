@@ -364,3 +364,19 @@ h2 { font-size: 17px; font-weight: 700; letter-spacing: 0; text-transform: none;
 .tabbar a[aria-current="page"]::before { display: none; }
 .signin p { font-size: 15px; }
 .brand.big { font-size: 64px; }
+
+/* My Day edit mode */
+.feed-head { margin: 6px 0 8px; align-items: center; }
+.feed-head h2 { font-size: 15px; color: var(--text-secondary); font-weight: 600; }
+.glance-edit { display: flex; align-items: center; gap: 12px; background: var(--surface); border-radius: var(--radius); padding: 12px 14px 12px 8px; min-height: 60px; }
+.glance-edit.off .g-head { opacity: .4; }
+.glance-edit .g-head { flex: 1; }
+.g-drag { width: 36px; height: 40px; display: grid; place-items: center; color: var(--text-muted); cursor: grab; touch-action: none; flex: none; }
+.g-drag svg { width: 20px; height: 20px; }
+.g-ghost { opacity: .35; }
+.sortable-chosen { background: var(--surface-raised); }
+.g-toggle { width: 50px; height: 30px; border-radius: 99px; border: 0; background: #39393d; position: relative; cursor: pointer; flex: none; transition: background .15s; }
+.g-toggle span { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.g-toggle.on { background: var(--status-good); }
+.g-toggle.on span { transform: translateX(20px); }
+.feed.editing { display: flex; flex-direction: column; }

@@ -41,6 +41,27 @@ try {
   const snap = async (name) => { await page.waitForTimeout(500); if (shots) await page.screenshot({ path: `${shots}/${name}.png`, fullPage: true }); };
   await snap('today');
 
+  // My Day: drag the 3rd card to the top, hide one, reload, check it persisted
+  await page.click('.feed-head button');
+  await page.waitForSelector('.glance-edit');
+  const keysBefore = await page.$$eval('.glance-edit', (els) => els.map((e) => e.dataset.key));
+  const src = await page.locator('.glance-edit').nth(2).locator('.g-drag').boundingBox();
+  const dst = await page.locator('.glance-edit').nth(0).locator('.g-drag').boundingBox();
+  await page.mouse.move(src.x + src.width / 2, src.y + src.height / 2);
+  await page.mouse.down();
+  for (let i = 1; i <= 12; i++) await page.mouse.move(src.x + src.width / 2, src.y + (dst.y - src.y) * (i / 12) - 4, { steps: 2 });
+  await page.mouse.up();
+  await page.waitForTimeout(400);
+  await page.locator('.glance-edit').last().locator('.g-toggle').click();
+  await page.waitForTimeout(600);
+  await snap('myday_edit');
+  await page.click('.feed-head button');
+  await page.reload();
+  await page.waitForSelector('.feed .glance');
+  const keysAfter = await page.$$eval('.feed .glance', (els) => els.map((e) => e.dataset.key));
+  if (keysAfter.indexOf(keysBefore[2]) >= 2) errors.push(`My Day reorder not saved: ${keysBefore[2]} should have moved up, got ${keysAfter.join(',')}`);
+  if (keysAfter.includes(keysBefore[keysBefore.length - 1])) errors.push('My Day hide not saved');
+
   const firstAct = await page.evaluate(async () => (await import('/js/data.js')).DB.acts.find((a) => a.type === 'running')?.id);
   const routes = ['sleep', 'train', `activity/${firstAct}`, 'body', 'trends?m=hrv', 'day/' + new Date(Date.now() - 2 * 864e5).toISOString().slice(0, 10), 'more', 'settings', 'data', 'lift'];
   for (const r of routes) {
