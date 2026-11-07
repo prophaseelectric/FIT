@@ -1,0 +1,5 @@
+node_modules/
+.data/
+api/local.settings.json
+*.log
+test-results/

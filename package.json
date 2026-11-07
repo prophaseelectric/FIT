@@ -1,0 +1,12 @@
+{
+  "name": "fit",
+  "private": true,
+  "description": "FIT: personal Garmin dashboard PWA",
+  "scripts": {
+    "postinstall": "cd api && npm install --no-audit --no-fund",
+    "dev": "node dev-server.js",
+    "demo": "GARMIN_MOCK=1 node dev-server.js",
+    "test": "node test/smoke.mjs"
+  },
+  "engines": { "node": ">=22" }
+}

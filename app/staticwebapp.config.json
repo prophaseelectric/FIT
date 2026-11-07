@@ -1,0 +1,23 @@
+{
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/api/*", "/icons/*", "/vendor/*", "/js/*", "/*.css", "/*.js", "/*.webmanifest", "/*.png"]
+  },
+  "routes": [
+    { "route": "/api/*", "allowedRoles": ["anonymous"] },
+    { "route": "/*", "allowedRoles": ["anonymous"] }
+  ],
+  "globalHeaders": {
+    "Cache-Control": "no-cache",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "same-origin",
+    "Permissions-Policy": "camera=(self), geolocation=()",
+    "Content-Security-Policy": "default-src 'self'; img-src 'self' data: https://*.tile.openstreetmap.org; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+  },
+  "mimeTypes": {
+    ".webmanifest": "application/manifest+json"
+  },
+  "platform": {
+    "apiRuntime": "node:22"
+  }
+}
