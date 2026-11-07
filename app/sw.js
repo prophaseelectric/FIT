@@ -1,5 +1,5 @@
 // Offline app shell. Data lives in IndexedDB (see js/api.js); /api is never cached here.
-const VERSION = 'fit-v1';
+const VERSION = 'fit-v2';
 const SHELL = ['/', '/index.html', '/app.css', '/manifest.webmanifest', '/vendor/chart.umd.js', '/vendor/leaflet.js', '/vendor/leaflet.css', '/vendor/fflate.js',
   '/js/app.js', '/js/ui.js', '/js/api.js', '/js/data.js', '/js/charts.js', '/js/lift.js', '/js/exercises.js',
   '/js/views/today.js', '/js/views/sleep.js', '/js/views/train.js', '/js/views/activity.js', '/js/views/body.js', '/js/views/trends.js',
