@@ -44,6 +44,8 @@ function base({ yFmt, xFmt, legend, stacked, yMin, yMax, yReverse, xTitle, toolt
 }
 
 function mount(canvas, cfg) {
+  Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+  Chart.defaults.font.weight = 500;
   const c = new Chart(canvas, cfg);
   live.add(c);
   return c;
