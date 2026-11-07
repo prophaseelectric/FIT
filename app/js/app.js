@@ -16,7 +16,7 @@ import * as Template from './views/template.js';
 import { renderMore, renderSettings, renderData } from './views/settings.js';
 
 const TABS = [
-  ['today', 'Today', '<path d="M12 21s-7-4.35-7-10a4 4 0 0 1 7-2.65A4 4 0 0 1 19 11c0 5.65-7 10-7 10z"/>'],
+  ['today', 'My Day', '<path d="M12 21s-7-4.35-7-10a4 4 0 0 1 7-2.65A4 4 0 0 1 19 11c0 5.65-7 10-7 10z"/>'],
   ['sleep', 'Sleep', '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>'],
   ['train', 'Train', '<path d="M13 4a2 2 0 1 0 0 .01M7 21l3-6 3 2v4M10 15l1-5 4 2 3-1M8 9l3-1"/>'],
   ['lift', 'Lift', '<path d="M3 10v4M6 8v8M18 8v8M21 10v4M6 12h12"/>'],

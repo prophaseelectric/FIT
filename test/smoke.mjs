@@ -37,7 +37,7 @@ try {
   await page.goto(base);
   await page.fill('input[type=password]', 'test');
   await page.click('button[type=submit]');
-  await page.waitForSelector('.verdict', { timeout: 15000 });
+  await page.waitForSelector('.feed', { timeout: 15000 });
   const snap = async (name) => { await page.waitForTimeout(500); if (shots) await page.screenshot({ path: `${shots}/${name}.png`, fullPage: true }); };
   await snap('today');
 
