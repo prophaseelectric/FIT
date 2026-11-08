@@ -1,6 +1,8 @@
 import { h, card, statusChip, fmtDur, fmtInt, fmtDate, wUnit, toW, fromW, todayStr, addDays, weekStart, isNum, sum, delta, toast } from '../ui.js';
 import { DB, day, baseline, latest, weightTrend, trainingLoad, sleepTargetH } from '../data.js';
 import { api, cacheGet, cacheSet } from '../api.js';
+import { loadBench, dueList } from '../bench.js';
+import { dueText } from './bench.js';
 import { activityRow } from './train.js';
 
 export const DEFAULT_TAGS = ['Alcohol', 'Late caffeine', 'Late meal', 'Sauna', 'Stretch/mobility', 'Sick', 'Travel', 'Stressful day', 'Rest day'];
@@ -176,6 +178,14 @@ export function render(root) {
     glance({ key: 'weight', color: C.weight, title: 'Weight', href: '#/body', value: tw?.trend ? toW(tw.trend).toFixed(1) : '–', unit: tw?.trend ? wUnit() : '', sub: tw7?.trend && tw?.trend ? h('span', null, 'Trend · ', delta(toW(tw.trend) - toW(tw7.trend), { unit: ' ' + wUnit(), goodWhen: (DB.prefs.goalKg ?? 0) > (tw.trend ?? 0) ? 'up' : 'down' }), ' this week') : 'Log a weigh-in', vals: last7.map((d) => { const x = trend.find((p) => p.date === d); return x?.trend ? toW(x.trend) : null; }), kind: 'line' }),
   ];
   root.append(myDayFeed(cards));
+  const dueBox = h('div');
+  root.append(dueBox);
+  loadBench().then(() => {
+    const dues = dueList();
+    if (!dues.length || !dueBox.isConnected) return;
+    dueBox.replaceChildren(h('section', { class: 'card' }, h('div', { class: 'card-head' }, h('h2', null, 'Benchmarks due'), h('a', { class: 'link', href: '#/bench' }, 'All')),
+      h('div', { class: 'list' }, dues.slice(0, 3).map(({ b, ...d }) => h('a', { class: 'row', href: `#/bench/${b.key}` }, h('span', { class: 'row-main' }, h('span', { class: 'row-title' }, b.name), h('span', { class: 'row-sub' }, dueText(d))), h('span', { class: 'row-end' }, '›'))))));
+  }).catch(() => {});
 
   const recent = DB.acts.slice(0, 3);
   root.append(h('section', { class: 'card' }, h('div', { class: 'card-head' }, h('h2', null, 'Activities'), h('a', { class: 'link', href: '#/train' }, 'All')),

@@ -52,7 +52,7 @@ async function originalFile(id) {
 }
 
 // Whole-document user data (lift templates, logged sessions). Optimistic concurrency via If-Match.
-const MANUAL_DOCS = new Set(['lift', 'sessions']);
+const MANUAL_DOCS = new Set(['lift', 'sessions', 'benchmarks']);
 const MAX_DOC = 3 * 1024 * 1024;
 const TAG = /^[\p{L}\p{N} _\-+&']{1,32}$/u;
 

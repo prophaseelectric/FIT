@@ -1,9 +1,9 @@
 // Offline app shell. Data lives in IndexedDB (see js/api.js); /api is never cached here.
-const VERSION = 'fit-v6';
+const VERSION = 'fit-v7';
 const SHELL = ['/', '/index.html', '/app.css', '/manifest.webmanifest', '/vendor/chart.umd.js', '/vendor/leaflet.js', '/vendor/leaflet.css', '/vendor/fflate.js', '/vendor/Sortable.min.js',
   '/js/app.js', '/js/ui.js', '/js/api.js', '/js/data.js', '/js/charts.js', '/js/lift.js', '/js/exercises.js',
   '/js/views/today.js', '/js/views/sleep.js', '/js/views/train.js', '/js/views/activity.js', '/js/views/body.js', '/js/views/trends.js',
-  '/js/views/day.js', '/js/views/lift.js', '/js/views/session.js', '/js/views/template.js', '/js/views/settings.js', '/icons/icon-192.png', '/fonts/figtree-latin.woff2'];
+  '/js/views/day.js', '/js/views/lift.js', '/js/views/session.js', '/js/views/template.js', '/js/views/settings.js', '/js/views/bench.js', '/js/bench.js', '/icons/icon-192.png', '/fonts/figtree-latin.woff2'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

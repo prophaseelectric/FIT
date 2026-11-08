@@ -116,6 +116,30 @@ try {
     if (!(await page.locator(`text=${label}`).count())) errors.push('activity page missing: ' + label);
   }
 
+  // Benchmarks: log a blood pressure reading and a timed test, check rating + persistence
+  await page.goto(`${base}/#/bench/log`);
+  await page.waitForSelector('select[aria-label=Benchmark]');
+  await page.selectOption('select[aria-label=Benchmark]', 'bp');
+  await page.fill('input[aria-label=Value]', '118');
+  await page.fill('input[aria-label=Diastolic]', '76');
+  await page.click('button[type=submit]');
+  await page.waitForURL(/#\/bench\/bp/);
+  await page.waitForTimeout(600);
+  if (!(await page.locator('text=In range').count())) errors.push('benchmark bp rating missing');
+  await page.goto(`${base}/#/bench/plank`);
+  await page.waitForSelector('input[aria-label=Minutes]');
+  await page.fill('input[aria-label=Minutes]', '1');
+  await page.fill('input[aria-label=Seconds]', '30');
+  await page.click('button[type=submit]');
+  await page.waitForTimeout(700);
+  await page.reload();
+  await page.waitForSelector('.kpi-value');
+  if (!(await page.locator('text=1:30').count())) errors.push('benchmark plank value not persisted');
+  await page.goto(`${base}/#/bench`);
+  await page.waitForSelector('.list');
+  await page.waitForTimeout(500);
+  await snap('bench');
+
   // Workout FIT export endpoint
   const fitRes = await fetch(`${base}/api/workout/fit`, { method: 'POST', headers: { 'x-app-key': 'test', 'content-type': 'application/json' }, body: JSON.stringify({ name: 'Test', sport: 'strength', exercises: [{ name: 'Bench', cat: 'benchPress', fit: 'barbellBenchPress', rest: 90, sets: [{ reps: 5, kg: 80 }] }] }) });
   const fitBuf = new Uint8Array(await fitRes.arrayBuffer());

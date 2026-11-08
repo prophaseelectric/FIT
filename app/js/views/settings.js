@@ -5,10 +5,11 @@ import { api, getKey, setKey, cacheClear } from '../api.js';
 import { LIFT, loadLift, exercise, sessionVolume, toDisp, wLabel } from '../lift.js';
 import { DEFAULT_TAGS } from './today.js';
 import { METRICS } from './trends.js';
+import { loadBench, benchCsv, BENCH, byKey, fmtValue } from '../bench.js';
 
 export function renderMore(root) {
   root.append(h('header', { class: 'page-head' }, h('h1', null, 'More')));
-  const links = [['#/body', '⚖️', 'Body & weight', 'Weigh-ins, trend, goal, body fat'], ['#/trends', '📈', 'Trends', 'Any metric, correlations, tag impact'], ['#/day/' + todayStr(), '📅', 'Day detail', 'Intraday HR, Body Battery, HRV readings'], ['#/data', '📦', 'Data & export', 'FIT files, Export for Claude, raw API'], ['#/settings', '⚙️', 'Settings & sync', 'Backfill, units, goals, app key']];
+  const links = [['#/bench', '🩺', 'Benchmarks', 'Blood pressure, labs, DEXA, fitness tests, what\'s due'], ['#/body', '⚖️', 'Body & weight', 'Weigh-ins, trend, goal, body fat'], ['#/trends', '📈', 'Trends', 'Any metric, correlations, tag impact'], ['#/day/' + todayStr(), '📅', 'Day detail', 'Intraday HR, Body Battery, HRV readings'], ['#/data', '📦', 'Data & export', 'FIT files, Export for Claude, raw API'], ['#/settings', '⚙️', 'Settings & sync', 'Backfill, units, goals, app key']];
   root.append(h('div', { class: 'list card' }, links.map(([href, i, t, s]) => h('a', { class: 'row', href }, h('span', { class: 'row-icon' }, i), h('span', { class: 'row-main' }, h('span', { class: 'row-title' }, t), h('span', { class: 'row-sub' }, s)), h('span', { class: 'row-end' }, '›')))));
 }
 
@@ -202,6 +203,12 @@ function briefing(from, to) {
   }
   const jr = Object.entries(DB.journal || {}).filter(([d]) => d >= from && d <= to);
   if (jr.length) { lines.push('## Journal tags'); for (const [d, e] of jr) lines.push(`- ${d}: ${(e.tags || []).join(', ')}${e.note ? ' — ' + e.note : ''}`); lines.push(''); }
+  if (BENCH.loaded && BENCH.doc.entries.length) {
+    lines.push('## Health benchmarks (latest of each)');
+    const seen = new Set();
+    for (const e of [...BENCH.doc.entries].reverse()) { if (seen.has(e.key)) continue; seen.add(e.key); const b = byKey(e.key); if (b) lines.push(`- ${b.name}: ${fmtValue(b, e)} (${e.date}${e.note ? ', ' + e.note : ''})`); }
+    lines.push('');
+  }
   lines.push('## Daily detail (date | sleep h | score | HRV | RHR | stress | BB high | steps | load)');
   const loadBy = new Map(tl.map((x) => [x.date, x.load]));
   for (const d of ds) { const r = DB.days.get(d); lines.push(`${d} | ${n(r.sleepSec / 3600, 1)} | ${r.sleepScore ?? ''} | ${r.hrv ?? ''} | ${r.rhr ?? ''} | ${r.stressAvg ?? ''} | ${r.bbMax ?? ''} | ${r.steps ?? ''} | ${loadBy.get(d) ? Math.round(loadBy.get(d)) : ''}`); }
@@ -212,6 +219,7 @@ function briefing(from, to) {
 async function claudeBundle(from, to, type, status) {
   status.textContent = 'Building…';
   await loadLift().catch(() => {});
+  await loadBench().catch(() => {});
   const acts = DB.acts.filter((a) => actDate(a) >= from && actDate(a) <= to && (!type || a.type === type));
   const actCsv = csv(['id', 'start', 'type', 'name', 'distance_m', 'duration_s', 'moving_s', 'elev_gain_m', 'avg_hr', 'max_hr', 'calories', 'avg_speed_mps', 'cadence', 'avg_power', 'norm_power', 'aerobic_te', 'anaerobic_te', 'training_load', 'vo2max', 'z1_s', 'z2_s', 'z3_s', 'z4_s', 'z5_s', 'sets', 'reps'],
     acts.map((a) => [a.id, a.start, a.type, a.name, a.dist, a.dur, a.moving, a.elev, a.avgHR, a.maxHR, a.cal, a.avgSpeed, a.cadence, a.power, a.np, a.teAer, a.teAna, a.load, a.vo2, ...(a.hrz || [null, null, null, null, null]), a.sets, a.reps]));
@@ -226,6 +234,7 @@ async function claudeBundle(from, to, type, status) {
     'daily_metrics.csv': dayRows(from, to),
     'activities.csv': actCsv,
     'lifting_sets.csv': csv(['date', 'workout', 'exercise', 'set', 'type', 'weight_kg', 'reps', 'seconds', 'rir'], liftRows),
+    'benchmarks.csv': benchCsv(),
     'weigh_ins.csv': csv(['date', 'kg', 'body_fat_pct', 'source'], [...DB.days].filter(([d, r]) => d >= from && d <= to && isNum(r.weight)).map(([d, r]) => [d, r.weight, r.bodyFat, 'garmin']).concat(DB.weights.filter((e) => e.date >= from && e.date <= to).map((e) => [e.date, e.kg, e.fat, 'fit']))),
   };
   saveBlob(await zipFiles(files), `fit-for-claude-${from}_to_${to}.zip`);

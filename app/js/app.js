@@ -14,6 +14,7 @@ import * as Lift from './views/lift.js';
 import * as Session from './views/session.js';
 import * as Template from './views/template.js';
 import { renderMore, renderSettings, renderData } from './views/settings.js';
+import * as Bench from './views/bench.js';
 
 const TABS = [
   ['today', 'My Day', '<path d="M12 21s-7-4.35-7-10a4 4 0 0 1 7-2.65A4 4 0 0 1 19 11c0 5.65-7 10-7 10z"/>'],
@@ -30,13 +31,14 @@ const ROUTES = {
   activity: (r, a) => Activity.render(r, a[0]),
   lift: (r, a) => (a[0] === 'session' ? Session.render(r) : a[0] === 'edit' ? Template.render(r, a[1]) : a[0] === 'log' ? Lift.renderLog(r, a[1]) : Lift.render(r)),
   body: (r) => Body.render(r),
+  bench: (r, a) => Bench.render(r, a[0]),
   trends: (r, a, q) => Trends.render(r, q),
   day: (r, a) => Day.render(r, a[0]),
   more: (r) => renderMore(r),
   settings: (r) => renderSettings(r),
   data: (r) => renderData(r),
 };
-const TAB_OF = { activity: 'train', body: 'more', trends: 'more', day: 'today', settings: 'more', data: 'more' };
+const TAB_OF = { activity: 'train', body: 'more', trends: 'more', day: 'today', settings: 'more', data: 'more', bench: 'more' };
 
 function parseHash() {
   const raw = location.hash.replace(/^#\/?/, '') || 'today';
