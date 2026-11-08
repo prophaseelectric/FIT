@@ -30,7 +30,7 @@ function downsample(arr, maxPts) {
 
 const r = (v, d = 0) => (typeof v === 'number' && Number.isFinite(v) ? Math.round(v * 10 ** d) / 10 ** d : null);
 
-async function parseActivityFile(buf, { maxPoints = 1500 } = {}) {
+async function parseActivityFile(buf, { maxPoints = 1500, full = false } = {}) {
   const { Decoder, Stream } = await loadSdk();
   const fit = extractFit(buf);
   const decoder = new Decoder(Stream.fromByteArray(fit));
@@ -59,7 +59,8 @@ async function parseActivityFile(buf, { maxPoints = 1500 } = {}) {
     if (k !== 't' && !sampled.some((p) => p[k] !== null)) continue;
     streams[k] = sampled.map((p) => p[k]);
   }
-  const track = downsample(pts.filter((p) => p.lat !== null && p.lon !== null && Math.abs(p.lat) > 1e-6), 2000).map((p) => [p.lat, p.lon]);
+  // [lat, lon, speed m/s] so the client can shade the route by speed
+  const track = downsample(pts.filter((p) => p.lat !== null && p.lon !== null && Math.abs(p.lat) > 1e-6), 2000).map((p) => [p.lat, p.lon, p.spd]);
 
   const laps = (messages.lapMesgs || []).map((l, i) => ({
     n: i + 1,
@@ -78,15 +79,37 @@ async function parseActivityFile(buf, { maxPoints = 1500 } = {}) {
     .map((s) => ({ reps: s.repetitions ?? null, kg: r(s.weight, 1), dur: r(s.duration), cat: s.category?.[0] ?? null }));
 
   const s = (messages.sessionMesgs || [])[0] || {};
-  return {
+  const tiz = (messages.timeInZoneMesgs || []).find((z) => z.referenceMesg === 'session') || (messages.timeInZoneMesgs || []).slice(-1)[0];
+  const up = (messages.userProfileMesgs || [])[0] || {};
+  const fid = (messages.fileIdMesgs || [])[0] || {};
+  const creator = (messages.deviceInfoMesgs || []).find((d) => d.deviceIndex === 'creator') || {};
+  const out = {
     streams, track, laps, sets,
     session: {
-      sport: s.sport, subSport: s.subSport, totalAscent: r(s.totalAscent), totalDescent: r(s.totalDescent),
-      avgTemp: r(s.avgTemperature), trainingLoadPeak: r(s.trainingLoadPeak, 1),
+      sport: s.sport, subSport: s.subSport, profileName: s.sportProfileName, totalAscent: r(s.totalAscent), totalDescent: r(s.totalDescent),
+      avgTemp: r(s.avgTemperature), minTemp: r(s.minTemperature), maxTemp: r(s.maxTemperature), trainingLoadPeak: r(s.trainingLoadPeak, 1),
+      elapsed: r(s.totalElapsedTime, 1), timer: r(s.totalTimerTime, 1), dist: r(s.totalDistance, 1), calories: r(s.totalCalories),
+      avgHr: r(s.avgHeartRate), maxHr: r(s.maxHeartRate), minHr: r(s.minHeartRate), avgSpeed: r(s.enhancedAvgSpeed ?? s.avgSpeed, 3), maxSpeed: r(s.enhancedMaxSpeed ?? s.maxSpeed, 3),
+      aerobicTE: r(s.totalTrainingEffect, 1), anaerobicTE: r(s.totalAnaerobicTrainingEffect, 1),
+      // HR zones straight from the device (seconds in Z1..Z5) when the API summary has none
+      hrZoneSec: Array.isArray(tiz?.timeInHrZone) ? tiz.timeInHrZone.slice(1, 6).map((v) => Math.round(v || 0)) : undefined,
+      hrZoneSecBelow: Array.isArray(tiz?.timeInHrZone) ? Math.round(tiz.timeInHrZone[0] || 0) : undefined,
+      hrZoneBounds: Array.isArray(tiz?.hrZoneHighBoundary) ? tiz.hrZoneHighBoundary : undefined,
+      userMaxHr: r(tiz?.maxHeartRate), userRestingHr: r(tiz?.restingHeartRate ?? up.restingHeartRate), userWeightKg: r(up.weight, 1),
+      device: fid.garminProduct || creator.garminProduct, firmware: creator.softwareVersion,
     },
     points: pts.length,
     errors: errors.map((e) => e.message).slice(0, 5),
   };
+  if (full) {
+    // Everything an analyst might want, untouched: used by the Claude bundle.
+    const keep = ['fileIdMesgs', 'activityMesgs', 'sessionMesgs', 'lapMesgs', 'lengthMesgs', 'recordMesgs', 'eventMesgs', 'deviceInfoMesgs', 'userProfileMesgs',
+      'zonesTargetMesgs', 'timeInZoneMesgs', 'sportMesgs', 'setMesgs', 'hrvMesgs', 'splitMesgs', 'splitSummaryMesgs', 'workoutMesgs', 'workoutStepMesgs', 'fieldDescriptionMesgs', 'developerDataIdMesgs'];
+    out.messages = Object.fromEntries(keep.filter((k) => messages[k]?.length).map((k) => [k, messages[k]]));
+    out.messageCounts = Object.fromEntries(Object.entries(messages).map(([k, v]) => [k, v.length]));
+    out.records = pts;
+  }
+  return out;
 }
 
 module.exports = { parseActivityFile, extractFit, downsample };

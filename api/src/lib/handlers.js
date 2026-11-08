@@ -9,6 +9,7 @@ const { getGarmin, GarminError } = require('./garmin');
 const { runSync, readState, summarize, setBackfillFrom, iso, addDays, isDate } = require('./sync');
 const { parseActivityFile } = require('./fit');
 const { buildWorkoutFit } = require('./workout');
+const { buildActivityBundle } = require('./bundle');
 
 const ok = (json, headers) => ({ status: 200, json, headers });
 const err = (status, message, extra) => ({ status, json: { error: message, ...extra } });
@@ -124,6 +125,22 @@ const routes = {
     const zip = await originalFile(query.id);
     if (!zip) return err(404, 'No file for this activity');
     return { status: 200, buffer: zip, headers: { 'Content-Type': 'application/zip', 'Content-Disposition': `attachment; filename="activity-${query.id}.zip"` } };
+  },
+
+  // Original FIT + full parse + CSVs + README, zipped: hand this to Claude.
+  'GET /activity/bundle': async ({ query }) => {
+    const id = query.id;
+    if (!ACTIVITY_ID.test(id || '')) return err(400, 'bad id');
+    const zip = await originalFile(id);
+    if (!zip) return err(404, 'No file for this activity');
+    let summary = {};
+    const y = /^\d{4}$/.test(query.year || '') ? query.year : null;
+    if (y) { const { data } = await getJson(`act/${y}.json`, {}); summary = data?.[id] || {}; }
+    const cached = await getJson(`activity/${id}.json`);
+    let detail = cached.data?.detail || null;
+    if (!detail) detail = await getGarmin().get(`/activity-service/activity/${id}`).catch(() => null);
+    const { buffer, filename } = await buildActivityBundle({ id, zip, summary, detail });
+    return { status: 200, buffer, headers: { 'Content-Type': 'application/zip', 'Content-Disposition': `attachment; filename="${filename}"` } };
   },
 
   // Intraday detail for one day (HR curve, HRV readings, Body Battery, SpO2, full sleep record).

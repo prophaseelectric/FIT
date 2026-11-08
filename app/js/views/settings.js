@@ -81,9 +81,11 @@ export function renderData(root) {
   root.append(card('Date range', h('div', { class: 'row-fields' }, from, to, typeSel),
     h('div', { class: 'actions' }, [['7d', 7], ['30d', 30], ['90d', 90], ['1y', 365]].map(([l, n]) => h('button', { class: 'btn ghost small', onclick: () => { from.value = addDays(t, -(n - 1)); to.value = t; } }, l)))));
 
-  root.append(card('Activity FIT files (originals)',
-    h('p', { class: 'muted small' }, 'The original files your watch recorded: every sensor channel, second by second, laps, sets, developer fields. This is the richest form of your data and what to hand to Claude (or any analysis tool) for deep dives.'),
-    h('div', { class: 'actions' }, h('button', { class: 'btn', onclick: () => bulkFit(from.value, to.value, typeSel.value, status, prog) }, 'Download FIT files (.zip)')),
+  const bundles = h('input', { type: 'checkbox', checked: true });
+  root.append(card('Activity files',
+    h('p', { class: 'muted small' }, 'The original files your watch recorded: every sensor channel, second by second, laps, sets, developer fields. With the box checked, each activity gets its own folder with the FIT file plus parsed JSON, per-second CSV, laps CSV and a README that explains every column. That is the version to hand to Claude.'),
+    h('label', { class: 'check-row' }, bundles, ' Include parsed CSVs + README per activity (Claude bundles)'),
+    h('div', { class: 'actions' }, h('button', { class: 'btn', onclick: () => bulkFit(from.value, to.value, typeSel.value, status, prog, bundles.checked) }, 'Download activities (.zip)')),
     prog, status));
 
   root.append(card('Export for Claude',
@@ -122,7 +124,7 @@ async function zipFiles(files) {
   return new Blob([zipSync(out, { level: 6 })], { type: 'application/zip' });
 }
 
-async function bulkFit(from, to, type, status, prog) {
+async function bulkFit(from, to, type, status, prog, asBundles = false) {
   const acts = DB.acts.filter((a) => actDate(a) >= from && actDate(a) <= to && (!type || a.type === type) && !a.manual);
   if (!acts.length) { status.textContent = 'No activities in that range.'; return; }
   if (acts.length > 150 && !confirm(`${acts.length} activities. This downloads each one from Garmin (cached after the first time) and may take a few minutes. Continue?`)) return;
@@ -136,13 +138,14 @@ async function bulkFit(from, to, type, status, prog) {
     status.textContent = `Downloading ${i} of ${acts.length}: ${a.name}`;
     prog.value = (i / acts.length) * 100;
     try {
-      const res = await fetch(`/api/activity/file?id=${a.id}`, { headers: { 'x-app-key': getKey() } });
+      const res = await fetch(asBundles ? `/api/activity/bundle?id=${a.id}&year=${a.start.slice(0, 4)}` : `/api/activity/file?id=${a.id}`, { headers: { 'x-app-key': getKey() } });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const buf = new Uint8Array(await res.arrayBuffer());
       const base = `${actDate(a)}_${a.start.slice(11, 16).replace(':', '')}_${a.type}_${a.id}`;
       try {
         const inner = unzipSync(buf);
-        for (const [n, data] of Object.entries(inner)) files[`${base}${n.toLowerCase().endsWith('.fit') ? '.fit' : '_' + n}`] = data;
+        if (asBundles) for (const [n, data] of Object.entries(inner)) files[`${base}/${n}`] = data;
+        else for (const [n, data] of Object.entries(inner)) files[`${base}${n.toLowerCase().endsWith('.fit') ? '.fit' : '_' + n}`] = data;
       } catch { files[base + '.fit'] = buf; }
     } catch (e) { failed.push(`${a.id} (${e.message})`); }
   }
@@ -150,7 +153,7 @@ async function bulkFit(from, to, type, status, prog) {
     acts.map((a) => [`${actDate(a)}_${a.start.slice(11, 16).replace(':', '')}_${a.type}_${a.id}.fit`, a.id, a.start, a.type, a.name, a.dist, a.dur, a.avgHR, a.maxHR, a.load, a.teAer, a.teAna, a.vo2]));
   if (failed.length) files['failed.txt'] = failed.join('\n');
   status.textContent = 'Zipping…';
-  saveBlob(await zipFiles(files), `fit-activities-${from}_to_${to}.zip`);
+  saveBlob(await zipFiles(files), `fit-activities${asBundles ? '-for-claude' : ''}-${from}_to_${to}.zip`);
   status.textContent = `Done: ${acts.length - failed.length} files${failed.length ? `, ${failed.length} failed (see failed.txt)` : ''}.`;
   prog.hidden = true;
 }

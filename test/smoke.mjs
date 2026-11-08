@@ -97,6 +97,25 @@ try {
   const logged = await page.locator('.table tbody tr').count();
   if (logged < 2) errors.push('lift: expected 2 logged sets, got ' + logged);
 
+  // Per-activity Claude bundle: zip with README, CSVs, parsed JSON and the FIT file
+  {
+    const { unzipSync, strFromU8 } = require(path.join(root, 'api/node_modules/fflate'));
+    const res = await fetch(`${base}/api/activity/bundle?id=${firstAct}&year=${new Date().getFullYear()}`, { headers: { 'x-app-key': 'test' } });
+    if (!res.ok) errors.push('bundle endpoint ' + res.status);
+    else {
+      const files = unzipSync(new Uint8Array(await res.arrayBuffer()));
+      for (const f of ['README.md', 'records.csv', 'laps.csv', 'session.csv', 'fit-parsed.json', `${firstAct}_ACTIVITY.fit`]) if (!files[f]) errors.push('bundle missing ' + f);
+      const recLines = files['records.csv'] ? strFromU8(files['records.csv']).trim().split('\n').length : 0;
+      if (recLines < 100) errors.push('bundle records.csv too short: ' + recLines);
+      if (files['README.md'] && !strFromU8(files['README.md']).includes('## records.csv columns')) errors.push('bundle README missing glossary');
+    }
+  }
+  await page.goto(`${base}/#/activity/${firstAct}`);
+  await page.waitForTimeout(2500);
+  for (const label of ['Speed vs heart rate', 'Moving time', 'Time per speed band', 'Export for Claude']) {
+    if (!(await page.locator(`text=${label}`).count())) errors.push('activity page missing: ' + label);
+  }
+
   // Workout FIT export endpoint
   const fitRes = await fetch(`${base}/api/workout/fit`, { method: 'POST', headers: { 'x-app-key': 'test', 'content-type': 'application/json' }, body: JSON.stringify({ name: 'Test', sport: 'strength', exercises: [{ name: 'Bench', cat: 'benchPress', fit: 'barbellBenchPress', rest: 90, sets: [{ reps: 5, kg: 80 }] }] }) });
   const fitBuf = new Uint8Array(await fitRes.arrayBuffer());

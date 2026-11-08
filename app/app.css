@@ -380,3 +380,12 @@ h2 { font-size: 17px; font-weight: 700; letter-spacing: 0; text-transform: none;
 .g-toggle.on { background: var(--status-good); }
 .g-toggle.on span { transform: translateX(20px); }
 .feed.editing { display: flex; flex-direction: column; }
+
+/* Activity analysis */
+.split-bar { height: 10px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.split-bar span { display: block; height: 100%; background: var(--series-1); border-radius: 99px; }
+.check-row { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.check-row input { width: 20px; height: 20px; min-height: 0; accent-color: var(--accent); }
+.map-legend { background: rgba(28,28,30,.85); color: #fff; font: 600 11px var(--font); padding: 4px 8px; border-radius: 8px; display: flex; align-items: center; gap: 6px; }
+.map-legend span { width: 64px; height: 6px; border-radius: 3px; display: inline-block; }
+.leaflet-control-scale-line { background: rgba(28,28,30,.8); color: #fff; border-color: #777; }
