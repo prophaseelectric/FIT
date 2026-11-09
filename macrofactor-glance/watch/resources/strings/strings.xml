@@ -1,0 +1,9 @@
+<strings>
+    <string id="AppName">MF Nutrition</string>
+    <string id="BlobUrlTitle">Blob URL (with read SAS)</string>
+    <string id="PushcutUrlTitle">Pushcut webhook URL</string>
+    <string id="CxKcalLong">Calories left</string>
+    <string id="CxKcalShort">KCAL</string>
+    <string id="CxProtLong">Protein left</string>
+    <string id="CxProtShort">PROT</string>
+</strings>

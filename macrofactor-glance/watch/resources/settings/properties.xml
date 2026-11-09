@@ -1,0 +1,4 @@
+<properties>
+    <property id="blobUrl" type="string"></property>
+    <property id="pushcutUrl" type="string"></property>
+</properties>

@@ -1,0 +1,13 @@
+<!-- VERIFY against the SDK "Complications" sample. If this file fails to compile on your
+     SDK/firmware, delete it, drop ComplicationPublisher from manifest.xml, and the app
+     still works (MFComplications.publish() no-ops when the API is missing). -->
+<complications>
+    <complication id="0" access="public" longLabel="@Strings.CxKcalLong"
+        shortLabel="@Strings.CxKcalShort" icon="@Drawables.ComplicationIcon">
+        <faces defaultOnly="false"></faces>
+    </complication>
+    <complication id="1" access="public" longLabel="@Strings.CxProtLong"
+        shortLabel="@Strings.CxProtShort" icon="@Drawables.ComplicationIcon">
+        <faces defaultOnly="false"></faces>
+    </complication>
+</complications>
