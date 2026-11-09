@@ -1,0 +1,9 @@
+{
+  "targets": { "kcal": 1422, "p": 197, "c": 45, "f": 50 },
+  "weight": { "trend": 175.05, "expenditure": 2062, "goal": 165.0, "eta": "2027-01-10" },
+  "nudge": { "p_left_1500": 60, "p_left_2000": 40 },
+  "staples": [
+    { "id": "shake", "name": "Whey shake", "kcal": 160, "p": 30, "c": 4, "f": 2 },
+    { "id": "eggs3", "name": "3 eggs", "kcal": 215, "p": 19, "c": 1, "f": 15 }
+  ]
+}

@@ -1,0 +1,8 @@
+<settings>
+    <setting propertyKey="@Properties.blobUrl" title="@Strings.BlobUrlTitle">
+        <settingConfig type="alphaNumeric"/>
+    </setting>
+    <setting propertyKey="@Properties.pushcutUrl" title="@Strings.PushcutUrlTitle">
+        <settingConfig type="alphaNumeric"/>
+    </setting>
+</settings>

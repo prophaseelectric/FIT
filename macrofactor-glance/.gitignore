@@ -1,0 +1,10 @@
+.env
+*.der
+*.pem
+developer_key*
+bin/
+watch/bin/
+.vscode/
+*.prg
+*.iq
+__pycache__/
