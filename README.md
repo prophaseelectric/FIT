@@ -7,6 +7,7 @@ app/   PWA (vanilla JS modules, Chart.js, Leaflet). No build step.
 api/   Azure Functions (Node 22). One catch-all function -> src/lib/handlers.js
 test/  End-to-end smoke test (Playwright) against mock Garmin data
 dev-server.js  Runs app + API locally, no Azure tools needed
+macrofactor-glance/  Separate project: MacroFactor nutrition on the watch (Connect IQ glance + iOS Shortcuts)
 ```
 
 ## What it does
